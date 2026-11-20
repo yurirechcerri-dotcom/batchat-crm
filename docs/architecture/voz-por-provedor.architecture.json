@@ -1,0 +1,118 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Voz por provedor",
+    "subtitle": "Credencial da organização, prévia e envio nativo",
+    "output": "voz-por-provedor.html",
+    "quality_profile": "standard"
+  },
+  "lanes": [
+    {
+      "id": "ui",
+      "label": "CRM"
+    },
+    {
+      "id": "runtime",
+      "label": "Runtime"
+    },
+    {
+      "id": "provider",
+      "label": "TTS"
+    }
+  ],
+  "mainPath": [
+    "config",
+    "resolve",
+    "tts",
+    "send"
+  ],
+  "nodes": [
+    {
+      "id": "config",
+      "lane": "ui",
+      "col": 1,
+      "type": "frontend",
+      "label": "CartaoDeVoz: credencial cifrada + settings.voz"
+    },
+    {
+      "id": "resolve",
+      "lane": "runtime",
+      "col": 2,
+      "type": "service",
+      "label": "resolverVozDoTurno: org, política, orçamento"
+    },
+    {
+      "id": "tts",
+      "lane": "provider",
+      "col": 3,
+      "type": "external",
+      "label": "sintetizarVoz: ElevenLabs ou Fish; timeout e formato"
+    },
+    {
+      "id": "send",
+      "lane": "runtime",
+      "col": 4,
+      "type": "service",
+      "label": "ledger + sendMessageHandler: pausa, STOP, handoff"
+    },
+    {
+      "id": "result",
+      "lane": "ui",
+      "col": 5,
+      "type": "frontend",
+      "label": "Inbox + llm_calls / Execuções: áudio e custo"
+    },
+    {
+      "id": "preview",
+      "lane": "runtime",
+      "col": 2,
+      "type": "route",
+      "label": "POST ai/voz/preview: orçamento, síntese sem envio"
+    }
+  ],
+  "edges": [
+    {
+      "id": "1",
+      "from": "config",
+      "to": "resolve",
+      "label": "org autenticada, escolha explícita"
+    },
+    {
+      "id": "2",
+      "from": "resolve",
+      "to": "tts",
+      "label": "credencial do mesmo tenant"
+    },
+    {
+      "id": "3",
+      "from": "tts",
+      "to": "send",
+      "label": "bytes ou fallback texto"
+    },
+    {
+      "id": "4",
+      "from": "send",
+      "to": "result",
+      "label": "status da mensagem, org/job/custo"
+    },
+    {
+      "id": "5",
+      "from": "config",
+      "to": "preview",
+      "label": "ouvir antes de salvar"
+    },
+    {
+      "id": "6",
+      "from": "preview",
+      "to": "tts",
+      "label": "mesmo provedor e orçamento"
+    },
+    {
+      "id": "7",
+      "from": "tts",
+      "to": "config",
+      "label": "prévia ou erro seguro, corrigir seleção"
+    }
+  ]
+}

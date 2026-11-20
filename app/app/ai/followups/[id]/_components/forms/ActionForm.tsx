@@ -1,0 +1,549 @@
+"use client";
+
+import { useState } from "react";
+
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { CampoComVariaveis } from "@/components/variaveis/CampoComVariaveis";
+import type { FonteDeVariavel, VariaveisDoModelo } from "@/lib/channels/meta/variaveis-do-fluxo";
+import { actionConfigSchema, MAX_VARIACOES_DO_PASSO } from "@/lib/followup/graph-schema";
+import type { VariavelDoModelo } from "@/lib/followup/modelos-aprovados";
+import { MODOS_DA_ACAO, opcoes, type ModoDaAcao } from "@/lib/followup/vocabulario";
+import { camposDoFunil, camposPorEscopo } from "@/lib/leads/campos-do-funil";
+import { Plus, Trash } from "@/lib/ui/icons";
+import { eCuringa, variavelDoCatalogo, variaveisDe } from "@/lib/variaveis/catalogo";
+import { usePipelines } from "@/hooks/webhooks/useWebhookSources";
+import { useMessageTemplates } from "@/hooks/inbox/useMessageTemplates";
+import { useModelosAprovadosDoFluxo } from "@/hooks/followup/useModelosAprovadosDoFluxo";
+import { useT } from "@/hooks/i18n/useT";
+
+import type { ConfigOf } from "./shared";
+import { MidiaDoPasso } from "./MidiaDoPasso";
+
+/**
+ * O seletor de modelo, no lugar dos dois `<Input>` que pediam um UUID colado à
+ * mão. Trata os três estados em vez de fingir que a lista sempre chega:
+ * carregando, vazia e erro — porque um seletor vazio sem explicação é o mesmo
+ * beco sem saída que o campo de UUID era, só que mais bonito.
+ *
+ * Duas origens, em grupos separados: os textos prontos (Ajustes → Modelos) e os
+ * modelos APROVADOS no WhatsApp. A diferença não é cosmética: com a janela de
+ * 24 h fechada, só o aprovado chega ao cliente — por isso o plano B da mensagem
+ * por IA (`soAprovados`) só oferece esse grupo.
+ */
+function SeletorDeModelo({
+  id,
+  valor,
+  onChange,
+  permiteVazio,
+  soAprovados,
+}: {
+  id: string;
+  valor: string;
+  onChange: (templateId: string) => void;
+  permiteVazio: boolean;
+  soAprovados: boolean;
+}) {
+  const t = useT();
+  const textos = useMessageTemplates();
+  const aprovados = useModelosAprovadosDoFluxo();
+  const prontos = soAprovados ? [] : (textos.data ?? []);
+  // O plano B da IA não tem mapa de variáveis: só modelo sem variável serve a ele.
+  const doCanal = (aprovados.data ?? []).filter((m) => !soAprovados || m.variaveis.length === 0);
+
+  // Seguimento do #3056: o id gravado que não está em nenhuma das listas (fluxo
+  // importado de outra conta, modelo apagado) deixava o seletor EM BRANCO, sem
+  // dizer nada. Só afirma a ausência com as duas listas carregadas — lista que
+  // falhou ou não pôde ser lida não prova que o modelo sumiu. Indisponível, o
+  // `value` vai "" — é o que faz o Radix mostrar o placeholder «Escolha um modelo».
+  const listasLidas = (soAprovados || textos.isSuccess) && aprovados.isSuccess;
+  const indisponivel = listasLidas && valor !== "" && !prontos.some((m) => m.id === valor) && !doCanal.some((m) => m.id === valor);
+  const aviso = indisponivel && (
+    <p role="alert" className="text-xs text-warning-fg">
+      {t("O modelo que estava aqui não está disponível nesta conta. Escolha um modelo para este passo.")}
+    </p>
+  );
+
+  if ((!soAprovados && textos.isLoading) || aprovados.isLoading) {
+    return <p className="text-xs text-text-muted">{t("Carregando seus modelos…")}</p>;
+  }
+  if ((soAprovados || textos.isError) && aprovados.isError) {
+    return (
+      <p className="text-xs text-error-fg">
+        {t("Não consegui carregar seus modelos de mensagem. Recarregue a página.")}
+      </p>
+    );
+  }
+  // O plano B é OPCIONAL: sem modelo aprovado, o seletor continua de pé com
+  // "Nenhum" e diz o que falta — trocá-lo por uma frase faria o campo sumir da
+  // tela justamente para quem ainda não tem modelo, e nada explicaria onde ele foi.
+  if (!soAprovados && prontos.length === 0 && doCanal.length === 0) {
+    return (
+      <div className="space-y-2">
+        {aviso}
+        <p className="text-xs text-text-muted">
+          {t("Você ainda não tem modelos de mensagem. Crie um em Ajustes → Modelos e ele aparece aqui.")}
+        </p>
+      </div>
+    );
+  }
+
+  const SEM_MODELO = "__nenhum__";
+  const escolhido = doCanal.find((m) => m.id === valor);
+  return (
+    <div className="space-y-2">
+      <Select
+        value={indisponivel ? "" : valor === "" ? SEM_MODELO : valor}
+        onValueChange={(v) => onChange(v === SEM_MODELO ? "" : v)}
+      >
+        <SelectTrigger id={id}>
+          <SelectValue placeholder={t("Escolha um modelo")} />
+        </SelectTrigger>
+        <SelectContent>
+          {permiteVazio && <SelectItem value={SEM_MODELO}>{t("Nenhum")}</SelectItem>}
+          {prontos.length > 0 && (
+            <SelectGroup>
+              <SelectLabel>{t("Textos prontos")}</SelectLabel>
+              {prontos.map((m) => (
+                <SelectItem key={m.id} value={m.id}>
+                  {m.title}
+                </SelectItem>
+              ))}
+            </SelectGroup>
+          )}
+          {doCanal.length > 0 && (
+            <SelectGroup>
+              <SelectLabel>{t("Aprovados no WhatsApp")}</SelectLabel>
+              {doCanal.map((m) => (
+                <SelectItem key={m.id} value={m.id}>
+                  {m.name} ({m.language})
+                </SelectItem>
+              ))}
+            </SelectGroup>
+          )}
+        </SelectContent>
+      </Select>
+      {aviso}
+      {escolhido && <p className="whitespace-pre-line text-xs text-text-muted">{escolhido.texto}</p>}
+      {soAprovados && doCanal.length === 0 && (
+        <p className="text-xs text-text-muted">
+          {t("Nenhum modelo aprovado no WhatsApp ainda. Crie um em Conexões → Modelos e ele aparece aqui quando for aprovado.")}
+        </p>
+      )}
+    </div>
+  );
+}
+
+const FONTE_NOME = "__contact_name__";
+const FONTE_PRIMEIRO_NOME = "__contact_first_name__";
+const FONTE_LIVRE = "__livre__";
+/**
+ * A origem nova (#3687): um nome do CATÁLOGO resolvido pelo resolvedor único.
+ * As três origens de sempre continuam válidas — o que está gravado não muda.
+ */
+const FONTE_VARIAVEL = "__variavel__";
+
+/**
+ * As variáveis FECHADAS que o fluxo sabe preencher (`nome`, `primeiro_nome`).
+ * `lead.*` fica de fora de propósito: campo do negócio já é a origem `lead_custom`
+ * acima, com a chave escrita à mão.
+ */
+const VARIAVEIS_DO_SISTEMA = variaveisDe("fluxo").filter((nome) => !eCuringa(nome));
+
+/** O que é desta AÇÃO e não do CRM: o laço do follow-up conta as voltas. */
+const ATALHOS_DO_FOLLOWUP = [
+  { chave: "volta", rotulo: "Número da volta", grupo: "acao" as const },
+  { chave: "voltas", rotulo: "Total de voltas", grupo: "acao" as const },
+];
+
+/**
+ * De onde sai cada variável de um modelo aprovado: nome do contato ou campo do
+ * negócio. O valor é lido na hora do envio; variável sem origem, ou vazia no
+ * contato, pula o passo com o motivo (`lib/channels/meta/variaveis-do-fluxo.ts`).
+ */
+function MapaDeVariaveis({
+  variaveis,
+  valor,
+  onChange,
+}: {
+  variaveis: VariavelDoModelo[];
+  valor: VariaveisDoModelo;
+  onChange: (next: VariaveisDoModelo) => void;
+}) {
+  const t = useT();
+  const pipelines = usePipelines();
+  // Só campos do NEGÓCIO: o envio lê `crm_leads.custom_fields`, e o valor de um
+  // campo do contato mora em `contacts.custom_fields` — escolhê-lo pularia o
+  // passo em toda inscrição (#2791; mesmo filtro do quadro e do calendário).
+  const campos = (pipelines.data?.data ?? []).flatMap((p) =>
+    camposPorEscopo(camposDoFunil(p.settings), "negocio"),
+  );
+  const camposUnicos = [...new Map(campos.map((c) => [c.key, c])).values()];
+  const faltando = variaveis.filter((v) => !valor[v.chave]);
+
+  const definir = (chave: string, fonte: FonteDeVariavel) => onChange({ ...valor, [chave]: fonte });
+
+  return (
+    <div className="space-y-3 rounded-md border border-border p-3">
+      <p className="text-sm font-medium">{t("De onde sai cada variável")}</p>
+      {variaveis.map((v) => {
+        const fonte = valor[v.chave];
+        const selecionado =
+          fonte?.kind === "contact_name"
+            ? FONTE_NOME
+            : fonte?.kind === "contact_first_name"
+              ? FONTE_PRIMEIRO_NOME
+              : fonte?.kind === "variavel"
+                ? FONTE_VARIAVEL
+                : fonte?.kind === "lead_custom"
+                  ? camposUnicos.some((c) => c.key === fonte.key)
+                    ? fonte.key
+                    : FONTE_LIVRE
+                  : "";
+        const id = `variavel-${v.chave.replace(/[^a-z0-9]/gi, "-")}`;
+        return (
+          <div key={v.chave} className="space-y-1">
+            <Label htmlFor={id} className="text-xs">
+              <span className="font-mono">{v.marcador}</span>
+              {v.noCabecalho ? ` · ${t("no cabeçalho")}` : ""}
+              {v.antes || v.depois ? (
+                <span className="ml-1 text-text-muted">
+                  «…{v.antes.slice(-24)} <span className="font-mono">{v.marcador}</span> {v.depois.slice(0, 24)}…»
+                </span>
+              ) : null}
+            </Label>
+            <Select
+              value={selecionado}
+              onValueChange={(escolha) => {
+                if (escolha === FONTE_NOME) definir(v.chave, { kind: "contact_name" });
+                else if (escolha === FONTE_PRIMEIRO_NOME) definir(v.chave, { kind: "contact_first_name" });
+                else if (escolha === FONTE_LIVRE) definir(v.chave, { kind: "lead_custom", key: "campo" });
+                else if (escolha === FONTE_VARIAVEL)
+                  definir(v.chave, { kind: "variavel", chave: VARIAVEIS_DO_SISTEMA[0] ?? "nome" });
+                else definir(v.chave, { kind: "lead_custom", key: escolha });
+              }}
+            >
+              <SelectTrigger id={id}>
+                <SelectValue placeholder={t("Escolha a origem")} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={FONTE_PRIMEIRO_NOME}>{t("Primeiro nome do contato")}</SelectItem>
+                <SelectItem value={FONTE_NOME}>{t("Nome do contato")}</SelectItem>
+                {camposUnicos.map((c) => (
+                  <SelectItem key={c.key} value={c.key}>
+                    {c.label} ({c.key})
+                  </SelectItem>
+                ))}
+                <SelectItem value={FONTE_LIVRE}>{t("Outro campo do negócio")}</SelectItem>
+                {/* #3687 — a MESMA variável das outras telas, resolvida pelo
+                    mesmo resolvedor. As origens acima continuam iguais. */}
+                <SelectItem value={FONTE_VARIAVEL}>{t("Variável do sistema")}</SelectItem>
+              </SelectContent>
+            </Select>
+            {fonte?.kind === "variavel" && (
+              <Select
+                value={fonte.chave}
+                onValueChange={(chave) => definir(v.chave, { kind: "variavel", chave })}
+              >
+                <SelectTrigger aria-label={t("Variável do sistema")}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {VARIAVEIS_DO_SISTEMA.map((nome) => (
+                    <SelectItem key={nome} value={nome}>
+                      {`{{${nome}}}`} — {t(variavelDoCatalogo(nome)?.descricao ?? nome)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+            {fonte?.kind === "lead_custom" && !camposUnicos.some((c) => c.key === fonte.key) && (
+              <Input
+                aria-label={t("Chave do campo do negócio")}
+                value={fonte.key}
+                onChange={(e) => definir(v.chave, { kind: "lead_custom", key: e.target.value.trim() })}
+              />
+            )}
+          </div>
+        );
+      })}
+      <p className={faltando.length > 0 ? "text-xs text-error-fg" : "text-xs text-text-muted"}>
+        {t(
+          "Se faltar a origem de alguma variável, ou se o dado estiver vazio no contato, o passo é pulado e o motivo aparece na linha do tempo.",
+        )}
+      </p>
+    </div>
+  );
+}
+
+export function ActionForm({
+  flowId,
+  config,
+  onChange,
+}: {
+  flowId?: string;
+  config: ConfigOf<"action">;
+  onChange: (c: ConfigOf<"action">) => void;
+}) {
+  const t = useT();
+  const [mode, setMode] = useState(config.mode);
+  const [body, setBody] = useState(config.mode === "text" ? config.body : "");
+  // #4429 — as OUTRAS redações do mesmo passo. A primeira continua sendo o
+  // `body` acima; estas o motor alterna a cada envio. O estado local guarda a
+  // caixa vazia recém-adicionada (o config só recebe as preenchidas).
+  const [variacoes, setVariacoes] = useState<string[]>(
+    config.mode === "text" ? (config.variacoes ?? []) : [],
+  );
+  const [promptHint, setPromptHint] = useState(config.mode === "ai_message" ? config.prompt_hint : "");
+  const [fallbackTemplateId, setFallbackTemplateId] = useState(
+    config.mode === "ai_message" ? (config.fallback_template_id ?? "") : "",
+  );
+  const [templateId, setTemplateId] = useState(config.mode === "template" ? config.template_id : "");
+  const [templateValues, setTemplateValues] = useState<VariaveisDoModelo>(
+    config.mode === "template" ? (config.template_values ?? {}) : {},
+  );
+  const aprovados = useModelosAprovadosDoFluxo();
+  const variaveisDe = (id: string) => aprovados.data?.find((m) => m.id === id)?.variaveis ?? [];
+  // #2734 — mídia OPCIONAL do passo: com uma imagem, um vídeo, um áudio ou um
+  // documento (#2972), o texto acima vira a LEGENDA. A referência privada
+  // é resolvida no envio; upload não publica nem executa o fluxo.
+  const [mediaUrl, setMediaUrl] = useState(
+    config.mode === "text" ? (config.media_url ?? "") : "",
+  );
+  const [error, setError] = useState<string | null>(null);
+
+  const commit = (next: {
+    mode: ModoDaAcao;
+    body: string;
+    variacoes: string[];
+    mediaUrl: string;
+    promptHint: string;
+    fallbackTemplateId: string;
+    templateId: string;
+    templateValues: VariaveisDoModelo;
+  }) => {
+    // Só as variáveis do modelo escolhido: trocar de modelo não carrega o mapa do
+    // anterior. Sem a lista carregada não se poda nada — podar às cegas apagaria
+    // o mapa salvo.
+    const chaves = variaveisDe(next.templateId).map((v) => v.chave);
+    const mapa =
+      aprovados.data === undefined
+        ? next.templateValues
+        : Object.fromEntries(Object.entries(next.templateValues).filter(([chave]) => chaves.includes(chave)));
+    // Caixa vazia (a que o botão "Redação" acabou de abrir) não vira variação:
+    // mandá-la crua reprovaria o schema inteiro e a tela não gravaria o texto.
+    const redacoesExtras = next.variacoes.map((redacao) => redacao.trim()).filter((redacao) => redacao.length > 0);
+    const candidate =
+      next.mode === "text"
+        ? {
+            mode: "text" as const,
+            body: next.body,
+            ...(redacoesExtras.length > 0 ? { variacoes: redacoesExtras } : {}),
+            ...(next.mediaUrl.trim() ? { media_url: next.mediaUrl.trim() } : {}),
+          }
+        : next.mode === "ai_message"
+          ? {
+              mode: "ai_message" as const,
+              prompt_hint: next.promptHint,
+              ...(next.fallbackTemplateId.trim() ? { fallback_template_id: next.fallbackTemplateId } : {}),
+            }
+          : {
+              mode: "template" as const,
+              template_id: next.templateId,
+              ...(Object.keys(mapa).length > 0 ? { template_values: mapa } : {}),
+            };
+    const parsed = actionConfigSchema.safeParse(candidate);
+    if (!parsed.success) {
+      setError(parsed.error.issues[0]?.message ?? t("Configuração inválida."));
+      return;
+    }
+    setError(null);
+    onChange(parsed.data);
+  };
+
+  const fields = { body, variacoes, mediaUrl, promptHint, fallbackTemplateId, templateId, templateValues };
+  const variaveisDoEscolhido = variaveisDe(templateId);
+
+  return (
+    <div className="space-y-3">
+      <div className="space-y-2">
+        <Label htmlFor="action-mode">{t("Como escrever a mensagem")}</Label>
+        <Select
+          value={mode}
+          onValueChange={(v) => {
+            const next = v as ModoDaAcao;
+            setMode(next);
+            commit({ mode: next, ...fields });
+          }}
+        >
+          <SelectTrigger id="action-mode">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {opcoes(MODOS_DA_ACAO).map(({ valor, rotulo }) => (
+              <SelectItem key={valor} value={valor}>
+                {t(rotulo)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {mode === "text" ? (
+        <div className="space-y-2">
+          {/*
+            O CAMPO COM VARIÁVEIS (#3687) — o MESMO da automação, da campanha e
+            da resposta rápida. Até aqui o follow-up não oferecia variável
+            nenhuma: quem escrevia tinha de adivinhar `{{primeiro_nome}}`.
+          */}
+          <CampoComVariaveis
+            id="action-body"
+            rotulo={t("Texto enviado ao contato")}
+            fonte="automacao"
+            valor={body}
+            onChange={(texto) => {
+              setBody(texto);
+              commit({ mode, ...fields, body: texto });
+            }}
+            linhas={4}
+            maxLength={4000}
+            extras={ATALHOS_DO_FOLLOWUP.map((a) => ({ ...a, rotulo: t(a.rotulo) }))}
+          />
+          <p className="text-xs text-text-muted">
+            {t("Sai exatamente assim, sem IA. No laço,")} {t("{{volta}}")} {t("e")} {t("{{voltas}}")} {t("viram o número da volta.")}
+          </p>
+          <p className="text-xs text-text-muted">
+            {t('Para não depender do dado, ponha um texto de reserva: {{primeiro_nome|"aluno"}}.')}
+          </p>
+          <p className="text-xs text-text-muted">
+            {t("Para escrever uma data no formato do cliente, use {{campo|data}}.")}
+          </p>
+          <div className="space-y-2 rounded-sm border border-border p-2" data-testid="action-variacoes">
+            <Label>{t("Outras redações do mesmo passo (opcional)")}</Label>
+            <p className="text-xs text-text-muted">
+              {t("O motor alterna entre o texto acima e as redações abaixo a cada envio — assim o contato não recebe a mesma frase duas vezes seguidas.")}
+            </p>
+            {variacoes.map((redacao, idx) => (
+              <div key={idx} className="flex items-start gap-2">
+                {/* Cada redação usa o MESMO campo com variáveis do texto principal
+                    (#3687): mesmo seletor, mesma prévia, mesmos atalhos da volta. */}
+                <div className="min-w-0 flex-1">
+                  <CampoComVariaveis
+                    id={`action-variacao-${idx}`}
+                    rotulo={`${t("Redação")} ${idx + 2}`}
+                    fonte="automacao"
+                    valor={redacao}
+                    onChange={(texto) => {
+                      const proximas = variacoes.map((atual, i) => (i === idx ? texto : atual));
+                      setVariacoes(proximas);
+                      commit({ mode, ...fields, variacoes: proximas });
+                    }}
+                    linhas={3}
+                    maxLength={4000}
+                    placeholder={t("Outra forma de dizer a mesma coisa")}
+                    extras={ATALHOS_DO_FOLLOWUP.map((a) => ({ ...a, rotulo: t(a.rotulo) }))}
+                  />
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  aria-label={t("Remover redação")}
+                  onClick={() => {
+                    const proximas = variacoes.filter((_, i) => i !== idx);
+                    setVariacoes(proximas);
+                    commit({ mode, ...fields, variacoes: proximas });
+                  }}
+                >
+                  <Trash size={14} aria-hidden />
+                </Button>
+              </div>
+            ))}
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              disabled={variacoes.length >= MAX_VARIACOES_DO_PASSO}
+              onClick={() => setVariacoes([...variacoes, ""])}
+            >
+              <Plus size={14} aria-hidden className="mr-1" /> {t("Redação")}
+            </Button>
+          </div>
+          <MidiaDoPasso flowId={flowId} value={mediaUrl} onChange={(value) => {
+            setMediaUrl(value);
+            commit({ mode, ...fields, mediaUrl: value });
+          }} />
+        </div>
+      ) : mode === "ai_message" ? (
+        <>
+          <div className="space-y-2">
+            <Label htmlFor="action-prompt-hint">{t("Instrução para a IA")}</Label>
+            <Textarea
+              id="action-prompt-hint"
+              maxLength={1000}
+              value={promptHint}
+              onChange={(e) => {
+                setPromptHint(e.target.value);
+                commit({ mode, ...fields, promptHint: e.target.value });
+              }}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="action-fallback">
+              {t("Se a janela de 24 horas já tiver fechado, mandar este modelo aprovado no lugar da IA")}
+            </Label>
+            <SeletorDeModelo
+              id="action-fallback"
+              valor={fallbackTemplateId}
+              permiteVazio
+              soAprovados
+              onChange={(v) => {
+                setFallbackTemplateId(v);
+                commit({ mode, ...fields, fallbackTemplateId: v });
+              }}
+            />
+          </div>
+        </>
+      ) : (
+        <div className="space-y-2">
+          <Label htmlFor="action-template-id">{t("Modelo de mensagem")}</Label>
+          <SeletorDeModelo
+            id="action-template-id"
+            valor={templateId}
+            permiteVazio={false}
+            soAprovados={false}
+            onChange={(v) => {
+              setTemplateId(v);
+              commit({ mode, ...fields, templateId: v });
+            }}
+          />
+          {variaveisDoEscolhido.length > 0 && (
+            <MapaDeVariaveis
+              variaveis={variaveisDoEscolhido}
+              valor={templateValues}
+              onChange={(next) => {
+                setTemplateValues(next);
+                commit({ mode, ...fields, templateValues: next });
+              }}
+            />
+          )}
+          <p className="text-xs text-text-muted">
+            {t("Depois de 24 horas sem resposta do cliente, só um modelo aprovado no WhatsApp chega até ele.")}
+          </p>
+        </div>
+      )}
+      {error && <p className="text-xs text-error-fg">{error}</p>}
+    </div>
+  );
+}

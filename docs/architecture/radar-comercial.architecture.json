@@ -1,0 +1,112 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Radar comercial e aviso privado",
+    "subtitle": "Evidência literal, decisão limitada e pausa retomável",
+    "output": "radar-comercial.html",
+    "quality_profile": "standard"
+  },
+  "lanes": [
+    {
+      "id": "ui",
+      "label": "Operação"
+    },
+    {
+      "id": "core",
+      "label": "Núcleo"
+    },
+    {
+      "id": "data",
+      "label": "Registros"
+    }
+  ],
+  "mainPath": [
+    "config",
+    "entrada",
+    "sinal",
+    "tela"
+  ],
+  "nodes": [
+    {
+      "id": "config",
+      "lane": "ui",
+      "col": 1,
+      "type": "service",
+      "label": "Radar: ativação por organização e modelo em Provedores"
+    },
+    {
+      "id": "entrada",
+      "lane": "core",
+      "col": 2,
+      "type": "service",
+      "label": "message.received: claim único, orçamento, contexto limitado"
+    },
+    {
+      "id": "sinal",
+      "lane": "data",
+      "col": 3,
+      "type": "service",
+      "label": "radar_analises: categoria, hash, posição literal e status"
+    },
+    {
+      "id": "pausa",
+      "lane": "core",
+      "col": 4,
+      "type": "service",
+      "label": "RPC: valida intenção explícita, pausa nativa, preserva intervenção humana"
+    },
+    {
+      "id": "tela",
+      "lane": "ui",
+      "col": 5,
+      "type": "service",
+      "label": "RLS: trecho atual, abrir conversa e resolver sem retomar"
+    },
+    {
+      "id": "sexta",
+      "lane": "core",
+      "col": 5,
+      "type": "service",
+      "label": "Ponte privada host: destino fixo, dedup e entrega incerta terminal"
+    }
+  ],
+  "edges": [
+    {
+      "id": "0",
+      "from": "config",
+      "to": "entrada",
+      "label": "opt-in"
+    },
+    {
+      "id": "1",
+      "from": "entrada",
+      "to": "sinal",
+      "label": "classificação validada"
+    },
+    {
+      "id": "2",
+      "from": "sinal",
+      "to": "pausa",
+      "label": "somente intenção explícita"
+    },
+    {
+      "id": "3",
+      "from": "sinal",
+      "to": "tela",
+      "label": "evidência e falhas"
+    },
+    {
+      "id": "4",
+      "from": "sinal",
+      "to": "sexta",
+      "label": "opt-in e operador autorizado"
+    },
+    {
+      "id": "5",
+      "from": "pausa",
+      "to": "tela",
+      "label": "estado confirmado"
+    }
+  ]
+}

@@ -1,0 +1,59 @@
+{
+  "format_version": 1,
+  "profile": "declarative",
+  "publisher": "brainads",
+  "name": "batchat-blue",
+  "version": "1.0.0",
+  "license": "MIT",
+  "host_api": {
+    "min": 2,
+    "max": 2
+  },
+  "permissions": [
+    "theme.apply"
+  ],
+  "dependencies": [],
+  "data": {
+    "mode": "none"
+  },
+  "display": {
+    "title": {
+      "pt-BR": "BatChat · Azul"
+    },
+    "summary": {
+      "pt-BR": "Superfícies claras e escuras da identidade BatChat."
+    },
+    "category": "productivity",
+    "icon": "Lightbulb"
+  },
+  "configuration": {
+    "density": "comfortable",
+    "show_description": true
+  },
+  "contributions": {
+    "crm_cards": [],
+    "theme": {
+      "palette": "clay",
+      "claro": {
+        "--color-bg": "#eef2f8",
+        "--color-surface": "#ffffff",
+        "--color-surface-elevated": "#e1e8f1",
+        "--color-text": "#101b29",
+        "--color-text-muted": "#495d72",
+        "--color-text-subtle": "#495d72",
+        "--color-border": "#677a8f",
+        "--color-border-strong": "#677a8f"
+      },
+      "escuro": {
+        "--color-bg": "#08090c",
+        "--color-surface": "#14161b",
+        "--color-surface-elevated": "#252b34",
+        "--color-text": "#f3f6fb",
+        "--color-text-muted": "#bac5d3",
+        "--color-text-subtle": "#bac5d3",
+        "--color-border": "#8293a8",
+        "--color-border-strong": "#8293a8"
+      }
+    }
+  }
+}

@@ -1,0 +1,67 @@
+{
+  "format_version": 1,
+  "profile": "declarative",
+  "publisher": "brainads",
+  "name": "batchat-amber",
+  "version": "1.1.0",
+  "license": "MIT",
+  "host_api": {
+    "min": 2,
+    "max": 2
+  },
+  "permissions": [
+    "theme.apply"
+  ],
+  "dependencies": [],
+  "data": {
+    "mode": "none"
+  },
+  "display": {
+    "title": {
+      "pt-BR": "BatChat · Âmbar"
+    },
+    "summary": {
+      "pt-BR": "Superfícies claras e escuras da identidade BatChat."
+    },
+    "category": "productivity",
+    "icon": "Lightbulb"
+  },
+  "configuration": {
+    "density": "comfortable",
+    "show_description": true
+  },
+  "contributions": {
+    "crm_cards": [],
+    "theme": {
+      "palette": "clay",
+      "claro": {
+        "--color-bg": "#f6f4ee",
+        "--color-surface": "#ffffff",
+        "--color-surface-elevated": "#eeeae0",
+        "--color-text": "#101216",
+        "--color-text-muted": "#515a63",
+        "--color-text-subtle": "#515a63",
+        "--color-border": "#746d5d",
+        "--color-border-strong": "#746d5d",
+        "--color-accent": "#FFB52C",
+        "--color-accent-fg": "#101216",
+        "--color-accent-hover": "#FFC459",
+        "--color-accent-soft": "rgba(255, 181, 44, 0.16)"
+      },
+      "escuro": {
+        "--color-bg": "#101216",
+        "--color-surface": "#20242a",
+        "--color-surface-elevated": "#2b3037",
+        "--color-text": "#f6f4ee",
+        "--color-text-muted": "#bcc2c9",
+        "--color-text-subtle": "#bcc2c9",
+        "--color-border": "#8b96a2",
+        "--color-border-strong": "#8b96a2",
+        "--color-accent": "#FFB52C",
+        "--color-accent-fg": "#101216",
+        "--color-accent-hover": "#FFC459",
+        "--color-accent-soft": "rgba(255, 181, 44, 0.16)"
+      }
+    }
+  }
+}

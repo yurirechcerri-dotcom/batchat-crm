@@ -1,0 +1,17 @@
+# BatChat
+
+> Atendimento e vendas por WhatsApp e Instagram com agentes de IA. O BatChat reúne as conversas num lugar só, deixa a IA resolver o que dá para resolver e passa para o time humano o que importa, com tudo registrado.
+
+Pontos principais:
+- Caixa de entrada única para WhatsApp (oficial) e Instagram, com atribuição a pessoas ou à IA.
+- Agentes de IA com base de conhecimento própria por conta.
+- Fluxos de follow-up e automações que o time monta no editor visual.
+- Contatos, tarefas e agenda no mesmo lugar.
+- Dados separados por conta, com a LGPD prevista no desenho.
+
+## Acesso
+
+- [Página inicial](https://app.batchat.com.br/): apresentação do produto
+- [Entrar](https://app.batchat.com.br/login): acesso à conta
+
+O painel exige login e não é indexado por buscadores.

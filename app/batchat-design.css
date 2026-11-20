@@ -1,0 +1,508 @@
+/*
+ * Camada do design system BatChat (pacote "BatChat-Design-System-Completo", 14/11/2026).
+ * Só traduz o que o sistema define para as variáveis do CRM; os 4 temas (âmbar/azul, claro/escuro)
+ * continuam vindo dos pacotes de tema (`public/packages`). Remover este arquivo devolve o visual anterior.
+ */
+
+/* A cor de contorno de destaque, lida no :root, antes de qualquer balão trocar o accent. */
+:root {
+  --bc-line: var(--color-accent);
+  --bc-focus-width: 2px;
+  --bc-focus-offset: 3px;
+}
+
+/*
+ * Foto 1 do Yuri (15/11/2026): a mensagem enviada é um balão âmbar cheio com texto escuro, a recebida é cinza.
+ * Vale por cima da prancha 22 (contorno), que o Yuri não escolheu. Player, documento e tique herdam por accent/accent-fg.
+ */
+[data-bc-bubble="out"] {
+  --color-accent-fg: #101216;
+  border: 0;
+  box-shadow: none;
+}
+
+/* Foco visível e consistente (sistema: 2 px, afastado 3 px). Só teclado: o clique do mouse não ganha anel. */
+:where(a, button, input, select, textarea, summary, [role="button"], [tabindex]):focus-visible {
+  outline: var(--bc-focus-width) solid var(--bc-line);
+  outline-offset: var(--bc-focus-offset);
+}
+
+/* Quem pede menos movimento não ganha transição extra do sistema. */
+@media (prefers-reduced-motion: reduce) {
+  [data-bc-bubble] { transition: none; }
+}
+
+/* ───────────────────────── Redesign: menos ruído, mais clareza ─────────────────────────
+ * Princípios da edição 02: um painel por ideia, contorno no lugar de peso, movimento curto
+ * (≤ 300 ms) que explica uma mudança e nunca decora. Tudo respeita "reduzir movimento". */
+
+@keyframes bc-sobe { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+
+/* Cartões: cantos maiores, contorno discreto, entrada suave e realce ao passar o mouse. */
+[data-bc-card] {
+  border-radius: 14px;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, .04) inset, 0 8px 24px rgba(0, 0, 0, .14);
+  animation: bc-sobe .28s cubic-bezier(.2, .7, .2, 1) both;
+  transition: border-color .18s ease, transform .18s ease, box-shadow .18s ease;
+}
+@media (hover: hover) {
+  [data-bc-card]:hover { border-color: color-mix(in srgb, var(--bc-line) 55%, var(--color-border)); }
+}
+
+/* Lista de conversas: cada conversa é um cartão pequeno, não uma linha de tabela. */
+[data-bc-row] {
+  margin: 6px 8px;
+  width: calc(100% - 16px);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  transition: border-color .15s ease, background-color .15s ease;
+}
+[data-bc-row][data-bc-selected] { border-color: var(--bc-line); }
+@media (hover: hover) { [data-bc-row]:hover { border-color: color-mix(in srgb, var(--bc-line) 55%, var(--color-border)); } }
+
+/* Selos e etiquetas ficam em segundo plano até a conversa estar em foco. */
+[data-bc-selos] { opacity: .62; transition: opacity .15s ease; }
+[data-bc-row]:hover [data-bc-selos],
+[data-bc-row][data-bc-selected] [data-bc-selos],
+[data-bc-row]:focus-within [data-bc-selos] { opacity: 1; }
+
+/* Filtros extras abrem com um deslize curto. */
+.bc-filtros-extras { animation: bc-sobe .2s ease both; }
+
+/* Lápis do nome: aparece ao passar o mouse; no toque fica sempre visível. */
+@media (hover: hover) {
+  .bc-nome-editavel__lapis { opacity: 0; transition: opacity .15s ease; }
+  .bc-nome-editavel:hover .bc-nome-editavel__lapis,
+  .bc-nome-editavel__lapis:focus-visible { opacity: 1; }
+}
+
+/* Celular (≤ 640 px): alvos de toque de 44 px, respiro maior, cantos do sistema. */
+@media (max-width: 640px) {
+  [data-bc-card] { border-radius: 16px; }
+  [data-bc-row] { margin: 6px 10px; padding-block: 4px; }
+  h1 { letter-spacing: -.015em; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-bc-card], .bc-filtros-extras { animation: none; }
+  [data-bc-card], [data-bc-row] { transition: none; }
+}
+
+/* Telas fora do painel (404) não passam pelo provedor de tema: usam a ação âmbar do sistema. */
+[data-bc-public] {
+  --color-accent: #ffb52c;
+  --color-accent-hover: #ffd071;
+  --color-accent-fg: #101216;
+  --color-accent-soft: rgba(255, 181, 44, .14);
+  --primary: #ffb52c;
+  --primary-foreground: #101216;
+}
+
+/* ───────── Redesign global (15/11/2026): cantos, hierarquia e menos peso em TODAS as telas ─────────
+ * Atua nos tokens, não tela por tela: o que usa `rounded-md/lg/xl` herda. Foto 1/2 do Yuri: cantos generosos,
+ * contorno discreto, ação âmbar e muito ar. */
+:root {
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+}
+
+/* Título de página: mais presença, menos ruído; descrição logo abaixo em tom suave. */
+main h1, [data-bc-page] h1 { font-weight: 700; letter-spacing: -.02em; line-height: 1.15; }
+main h1 + p, [data-bc-page] h1 + p { color: var(--color-text-muted, #bcc2c9); max-width: 60ch; }
+
+/* Botão de ação: âmbar cheio com brilho curto ao passar o mouse (movimento ≤ 200 ms). */
+@media (hover: hover) {
+  button[class*="bg-accent"]:not(:disabled):hover, a[class*="bg-accent"]:hover { box-shadow: 0 6px 20px rgba(255, 181, 44, .22); }
+}
+button, a { transition: background-color .15s ease, border-color .15s ease, box-shadow .15s ease, color .15s ease; }
+
+/* Campos: contorno de controle visível e foco âmbar. */
+input:not([type="checkbox"]):not([type="radio"]), textarea, select { border-radius: var(--radius-md); }
+
+/* Tabelas viram listas leves: linha com realce suave, sem grade pesada. */
+table { border-collapse: separate; border-spacing: 0; }
+tbody tr { transition: background-color .12s ease; }
+@media (hover: hover) { tbody tr:hover { background-color: color-mix(in srgb, var(--color-accent) 7%, transparent); } }
+
+/* Diálogos, menus e painéis flutuantes: canto grande e sombra contida. */
+[role="dialog"], [role="menu"], [role="listbox"], [data-radix-popper-content-wrapper] > * { border-radius: var(--radius-lg); }
+
+/* Celular: navegação inferior com sublinhado âmbar no item ativo e barra superior mais leve. */
+@media (max-width: 767px) {
+  nav[class*="fixed"] a[aria-current="page"] { box-shadow: inset 0 -3px 0 var(--bc-line); }
+  header[class*="sticky"] { border-bottom-color: transparent; }
+  [data-bc-faixa-agenda] { box-shadow: 0 10px 28px rgba(255, 181, 44, .18); }
+}
+
+/* Prancha 06 (contatos e pipeline): cabeçalho de tabela em mono pequeno e maiúsculo, linhas com mais ar. */
+thead th {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--color-text-muted, #bcc2c9);
+}
+tbody td { padding-block: 14px; }
+
+/* Etiquetas e selos em pílula (prancha 06/04): cantos totais e peso 600. */
+[class*="badge"], [data-slot="badge"] { border-radius: 9999px; font-weight: 600; }
+
+/* Colunas do funil: painel com cantos grandes e contador em pílula (prancha 06). */
+[data-bc-card] h2, [data-bc-card] h3 { letter-spacing: -.01em; }
+
+/* ───────── Celular = foto 2 (15/11/2026): lista limpa, uma linha de título + uma de prévia + ponto ───────── */
+@media (max-width: 767px) {
+  /* Seleção em lote, posição na fila e etiquetas saem da lista (aparecem na conversa). */
+  [data-bc-checkbox], [data-bc-fila], [data-bc-selos] { display: none !important; }
+  [data-bc-row] { margin: 6px 12px; width: calc(100% - 24px); padding: 6px 4px; border-radius: 18px; border-color: transparent; background: var(--color-surface); }
+  [data-bc-row][data-bc-selected] { border-color: var(--bc-line); background: color-mix(in srgb, var(--bc-line) 14%, var(--color-surface)); }
+
+  /* "Iniciar conversa" vira um botão redondo âmbar, só o ícone, no canto. */
+  /* "Iniciar conversa" ocupa a largura toda, com ícone e texto, acima da busca. */
+  [data-bc-iniciar] { display: block; padding: 12px 12px 0; }
+  [data-bc-iniciar] button { width: 100%; min-height: 44px; border-radius: 9999px; background: var(--color-surface); color: var(--color-text); border: 1px solid var(--color-border); box-shadow: var(--bc-sombra-1); font-size: .9375rem; font-weight: 600; gap: 8px; }
+  /* Busca e chips (Não lidos, Grupos, Filtros) ficam sempre à vista, como no computador; só os seletores abrem em "Filtros"; as abas viram um controle segmentado. */
+  [data-bc-busca] input { height: 44px; border-radius: 9999px; background: var(--color-surface); border: 1px solid var(--color-border); box-shadow: var(--bc-sombra-1); }
+  [data-bc-filtros] [role="tablist"] { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; padding: 4px; background: var(--color-surface); border-radius: 18px; width: 100%; }
+  [data-bc-filtros] [role="tab"] { justify-content: center; border-radius: 14px; padding-block: 10px; }
+}
+
+/* Contatos no celular: só busca + Tag; seleção em lote e filtros raros ficam para o computador. */
+@media (max-width: 767px) {
+  [data-bc-contatos-filtros] > :nth-child(n+3) { display: none; }
+  [data-testid="selecionar-todos-contatos"], [data-testid^="selecionar-contato-"] { display: none; }
+}
+
+/* Funil (prancha 06): colunas como painéis de canto grande, filtros raros fora do celular. */
+@media (max-width: 767px) {
+  [data-bc-funil-filtros] > :nth-child(n+3) { display: none; }
+}
+[data-bc-funil-coluna], section[aria-label][class*="rounded"] { border-radius: var(--radius-xl); }
+
+/* Telas internas no celular (prancha 10): título grande, texto de apoio fora, cartões de canto grande. */
+@media (max-width: 767px) {
+  main h1, [data-bc-page] h1 { font-size: 1.75rem; }
+  main h1 + p, [data-bc-page] h1 + p { display: none; }
+  main [data-bc-card] { border-radius: 18px; }
+}
+
+/* ───────── Todas as telas, todos os aparelhos (pranchas 05, 06, 09, 22) ───────── */
+/* Título de página grande e firme; o apoio embaixo fica visível no tablet e no computador. */
+main h1, [data-bc-page] h1 { font-size: clamp(1.75rem, 1.2rem + 1.4vw, 2.25rem); }
+
+/* Cartões e painéis: cantos grandes em qualquer tela. */
+[data-bc-card] { border-radius: 20px; }
+.rounded-lg.border.bg-card, .rounded-lg.border.bg-surface { border-radius: 18px; }
+
+/* Rótulos de seção em mono, caixa alta e espaçados (CANAL, TAG, ETAPA, RESPONSÁVEL…). */
+[data-bc-card] label.uppercase, [data-bc-card] .tracking-wider.uppercase, th { font-family: var(--font-mono, ui-monospace, monospace); letter-spacing: .08em; }
+
+/* Linhas de tabela e de lista: respiro e divisor suave, sem grade. */
+tbody tr { border-color: color-mix(in srgb, var(--color-border) 70%, transparent); }
+td { padding-block: 14px; }
+
+/* Barra lateral: marca âmbar na esquerda do item ativo. */
+nav a[aria-current="page"] { box-shadow: inset 3px 0 0 var(--color-accent); }
+
+/* Campos de busca e seletores do topo com formato de pílula. */
+header [role="search"], header button[aria-label*="uscar"] { border-radius: 9999px; }
+
+/* Tablet: mesmos cartões da lista do celular, com mais ar. */
+@media (min-width: 768px) and (max-width: 1023px) {
+  main { --bc-gutter: 20px; }
+  [data-bc-row] { margin: 6px 12px; width: calc(100% - 24px); border-radius: 16px; }
+}
+
+/* ───────── Inbox no computador e no tablet = prancha 05 ─────────
+ * Cartão de conversa limpo: avatar, nome, canal, hora e prévia. Posição na fila, etiquetas e a estrela
+ * saem; a caixa de seleção só aparece ao passar o mouse. */
+[data-bc-fila], [data-bc-selos], [data-bc-selecionar-todas] { display: none !important; }
+[data-bc-checkbox] { opacity: 0; width: 0; min-width: 0; margin: 0; overflow: hidden; transition: opacity .15s ease; }
+[data-bc-row]:hover [data-bc-checkbox], [data-bc-row]:has([data-bc-checkbox]:focus-visible) [data-bc-checkbox], [data-bc-row]:has([data-bc-checkbox][aria-checked="true"]) [data-bc-checkbox] { opacity: 1; width: auto; min-width: 20px; margin-right: 6px; }
+[data-bc-row] { padding: 10px 6px; border-color: transparent; background: var(--color-surface); border-radius: 16px; }
+[data-bc-row][data-bc-selected] { background: color-mix(in srgb, var(--bc-line) 14%, var(--color-surface)); border-color: color-mix(in srgb, var(--bc-line) 55%, transparent); box-shadow: 0 0 0 1px color-mix(in srgb, var(--bc-line) 55%, transparent), 0 6px 18px rgba(0, 0, 0, .28); }
+
+/* Bordas suaves no escuro (prancha 05/06/09): o tema de alto contraste pintava todo contorno de cinza claro. */
+html[data-theme="dark"] body {
+  --color-border: #363d48 !important;
+  --color-border-strong: #4b5461 !important;
+  --border: #363d48 !important;
+  --input: #363d48 !important;
+}
+
+/* Cartões com ações em fila (Fluxos): botões sem contorno, só o texto, para o cartão respirar. */
+[data-bc-acoes] button { border-color: transparent; background: transparent; box-shadow: none; color: var(--color-text-muted, #bcc2c9); padding-inline: 10px; }
+[data-bc-acoes] button:hover { background: color-mix(in srgb, var(--color-accent) 12%, transparent); color: var(--color-accent); border-color: transparent; }
+
+/* Esqueleto de carregamento no escuro: faixa discreta no tom do cartão, sem blocos cinza gritando. */
+html[data-theme="dark"] .ds-esqueleto { --ds-esqueleto-corpo: #2c323c; --ds-esqueleto-brilho: #3a424e; border-radius: 14px; }
+
+/* Abas de página (Atividades, Webhooks, Conexões): cápsula discreta, aba ativa em âmbar. */
+[role="tablist"] { border-radius: 9999px; }
+
+/* Listas de itens (Respostas rápidas): cartões de canto grande, sem bordas pesadas. */
+main ul > li[class*="border"], main div[class*="rounded-lg"][class*="border"] { border-radius: 16px; }
+
+/* ───────── Editor de fluxos (prancha 07) ───────── */
+/* Barra de cima: título grande, ações em texto, o Publicar é o único botão cheio. */
+[data-bc-editor-barra] { background: transparent; padding: 18px 24px; border-bottom: 1px solid var(--color-border); }
+[data-bc-editor-barra] h1 { font-size: 1.75rem; line-height: 1.1; letter-spacing: -.02em; font-weight: 700; }
+[data-bc-editor-barra] button:not([data-testid="publish-button"]) { background: transparent; border-color: transparent; box-shadow: none; color: var(--color-text-muted, #bcc2c9); }
+[data-bc-editor-barra] button:not([data-testid="publish-button"]):hover:not(:disabled) { background: var(--color-surface-elevated); color: var(--color-text); }
+[data-bc-editor-barra] [data-testid="publish-button"] { border-radius: 9999px; padding-inline: 22px; font-weight: 700; box-shadow: 0 0 0 1px rgba(255, 208, 113, .45), 0 8px 26px rgba(255, 181, 44, .3); }
+
+/* Canvas: grade de pontos escura, fios e alças âmbar, controles em pílula. */
+.react-flow { --xy-background-color-default: #0d1014; --xy-background-pattern-dots-color-default: #2b313a; background: #0d1014; }
+.react-flow__edge-path { stroke: var(--color-accent); stroke-width: 2; }
+.react-flow__edge.selected .react-flow__edge-path, .react-flow__edge:focus .react-flow__edge-path { stroke: #ffd071; stroke-width: 3; filter: drop-shadow(0 0 6px rgba(255, 181, 44, .6)); }
+.react-flow__edge-textbg { fill: #2a2110; stroke: var(--color-accent); stroke-width: 1px; rx: 12px; }
+.react-flow__edge-text { fill: var(--color-accent); font-weight: 700; font-size: 11px; }
+.react-flow__handle { width: 10px; height: 10px; background: var(--color-accent); border: 2px solid #0d1014; }
+.react-flow__connection-path { stroke: var(--color-accent); stroke-width: 2; }
+.react-flow__controls { background: #14171c; border: 1px solid #363d48; border-radius: 12px; box-shadow: 0 14px 40px rgba(0, 0, 0, .55); overflow: hidden; }
+.react-flow .react-flow__controls-button { background: transparent; border-bottom: 1px solid #363d48; color: var(--color-text-muted, #bcc2c9); fill: currentColor; }
+.react-flow .react-flow__controls-button:hover { background: var(--color-surface-elevated); color: var(--color-accent); }
+.react-flow__minimap { box-shadow: 0 14px 40px rgba(0, 0, 0, .55); }
+.react-flow__minimap-mask { fill: rgba(255, 181, 44, .08); stroke: var(--color-accent); stroke-width: 1; }
+[data-bc-editor-corpo] { background: #0b0d10; }
+
+/* Abas da Inbox (Fila · Minhas · Todas): três pílulas retas, lado a lado, do mesmo tamanho. */
+[data-bc-filtros] [role="tablist"] { display: flex !important; flex-wrap: nowrap !important; gap: 6px; width: 100%; padding: 4px !important; background: var(--color-surface) !important; border-radius: 9999px !important; }
+[data-bc-filtros] [role="tab"] { flex: 1 1 0; min-width: 0; justify-content: center; border-radius: 9999px !important; white-space: nowrap; padding-inline: 8px; }
+
+/* Abas da Inbox no computador: o contêiner delas não tem o atributo usado acima, então a regra pega pelo id das abas. */
+[role="tablist"]:has(> [role="tab"][id$="-tab-unassigned"]) { display: flex !important; flex-wrap: nowrap !important; gap: 6px; width: 100%; overflow: visible; }
+[role="tablist"]:has(> [role="tab"][id$="-tab-unassigned"]) > [role="tab"] { flex: 1 1 0; min-width: 0; justify-content: center; border-radius: 9999px !important; white-space: nowrap; padding-inline: 6px; font-size: .8125rem; }
+
+/* A aba Todas é um menu: o <span> que a envolve é filho do tablist e precisa dividir a faixa como as outras duas. */
+[role="tablist"] > [data-testid="aba-todas-gatilho"] { flex: 1.3 1 0 !important; min-width: 0 !important; display: flex !important; }
+[role="tablist"] > [data-testid="aba-todas-gatilho"] > [role="tab"] { flex: 1 1 0; min-width: 0; justify-content: center; border-radius: 9999px !important; white-space: nowrap; padding-inline: 6px; font-size: .8125rem; }
+
+/* DESIGN.md §3: cartão de conversa do tamanho do conteúdo (≈64 px) e número da aba legível. */
+[data-bc-row] { padding: 4px 2px; margin: 4px 8px; width: calc(100% - 16px); }
+[data-bc-row] button[data-conversation-id] { padding-block: 8px; padding-inline: 10px; gap: 10px; }
+[role="tab"] span.tabular-nums { font-size: .75rem; font-weight: 700; color: var(--color-text-muted, #bcc2c9) !important; }
+[role="tab"][data-state="active"] span.tabular-nums { color: var(--color-accent-foreground, #101216) !important; opacity: .85; }
+
+/* Convergência kit + critique: selecionada = contorno inteiro âmbar (sem barra lateral grossa); anel âmbar do avatar só nela. */
+[data-bc-row]:not([data-bc-selected]) span.ring-2 { box-shadow: none; --tw-ring-shadow: 0 0 #0000; }
+
+/* Nós numerados como na prancha 07 ("01 GATILHO"): contador CSS pela ordem dos nós no canvas. */
+.react-flow__nodes { counter-reset: bc-no; }
+.react-flow__node { counter-increment: bc-no; }
+.bc-no-rotulo::before { content: counter(bc-no, decimal-leading-zero) "  "; opacity: .8; }
+
+/* ═══ VIDA (DESIGN.md §motion): profundidade, movimento curto, feedback. Nada pesado: só transform/opacity/sombra. ═══ */
+:root { --bc-ease: cubic-bezier(.2, 0, 0, 1); --bc-sombra-1: 0 1px 0 rgba(255, 255, 255, .04) inset, 0 6px 18px rgba(0, 0, 0, .28); --bc-sombra-2: 0 1px 0 rgba(255, 255, 255, .06) inset, 0 14px 34px rgba(0, 0, 0, .38); }
+
+/* Cartões: borda de luz em cima + sombra que aparece no escuro. Os clicáveis sobem 2 px. */
+[data-bc-card] { box-shadow: var(--bc-sombra-1); transition: transform .22s var(--bc-ease), box-shadow .22s var(--bc-ease), border-color .22s ease; }
+a:hover > [data-bc-card], a[data-bc-card]:hover, [data-bc-card][class*="cursor-pointer"]:hover, li:hover > [data-bc-card]:not([data-bc-sem-lift]) { transform: translateY(-2px); box-shadow: var(--bc-sombra-2); border-color: color-mix(in srgb, var(--color-accent) 35%, var(--color-border)); }
+
+/* Abas: a pílula ativa acende com um brilho e as outras reagem ao mouse e ao toque. */
+[role="tab"] { transition: background-color .15s ease-out, color .15s ease-out, box-shadow .15s ease-out, transform .15s ease-out; }
+[role="tab"]:not([data-state="active"]):hover { background-color: color-mix(in srgb, var(--color-accent) 12%, var(--color-surface)); color: var(--color-text); }
+[role="tab"][data-state="active"] { box-shadow: 0 6px 18px rgba(255, 181, 44, .28); }
+[role="tab"]:active { transform: scale(.96); }
+
+/* Botões: leve afundar ao apertar. */
+button:not(:disabled):active, a[class*="bg-accent"]:active { transform: scale(.96); transition-duration: .15s; }
+
+/* Menu lateral: o item acende ao passar o mouse. */
+nav a { transition: background-color .18s ease, color .18s ease, transform .18s var(--bc-ease); }
+nav a:hover { transform: translateX(2px); }
+
+/* Entrada: a tela e as linhas das listas surgem de baixo, em sequência curta. */
+@keyframes bc-sobe { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+main > * { animation: bc-surge .16s ease-out both; }
+/* Linhas de lista são interação frequente: respondem na hora, sem entrada em sequência. */
+[data-bc-row] { transition: background-color .15s ease-out, border-color .15s ease-out, box-shadow .15s ease-out; }
+
+/* Diálogos e menus: entram com escala suave. */
+@keyframes bc-surge { from { opacity: 0; } to { opacity: 1; } }
+@keyframes bc-pop { from { opacity: 0; transform: translateY(6px) scale(.98); } to { opacity: 1; transform: none; } }
+[role="dialog"], [role="menu"] { animation: bc-pop .2s var(--bc-ease) both; }
+
+@media (prefers-reduced-motion: reduce) {
+  main > *, [role="dialog"], [role="menu"] { animation: none !important; }
+  [data-bc-card], [role="tab"], nav a, button { transition: none !important; transform: none !important; }
+}
+
+/* ═══ GAVETA DO CELULAR: menu lateral legível, com respiro e alvos de toque de 48 px ═══ */
+
+/* ═══ PAINÉIS AVULSOS: mesma profundidade dos cartões ═══
+   Muita tela monta o próprio painel com `bg-surface` + borda + canto grande, sem passar pelo <Card>.
+   Sem isto, só o Card ganhava sombra e o app ficava incongruente (inbox em relevo, o resto chapado).
+   Só div/section/article/aside/li/details: botões, campos e chips (rounded-md/full) ficam de fora. */
+main :is(div, section, article, aside, li, details)[class*="bg-surface"][class*="border"]:is([class*="rounded-lg"], [class*="rounded-xl"], [class*="rounded-2xl"]):not([data-bc-card]),
+main :is(div, section, article, aside, li, details)[class*="bg-card"][class*="border"]:not([data-bc-card]) {
+  border-radius: 14px;
+  box-shadow: var(--bc-sombra-1);
+}
+
+/* ═══ CELULAR: sem entrada animada e com sombra leve ═══
+   Em lista longa, cada cartão com sombra grande e animação de entrada pesa a pintura e trava a rolagem. */
+@media (max-width: 767px) {
+  main > *, [data-bc-card], [data-bc-row], .bc-filtros-extras { animation: none !important; }
+  [data-bc-card], [data-bc-row], tbody tr { transition: none !important; }
+  [data-bc-card],
+  main :is(div, section, article, aside, li, details)[class*="bg-surface"][class*="border"]:is([class*="rounded-lg"], [class*="rounded-xl"], [class*="rounded-2xl"]):not([data-bc-card]),
+  main :is(div, section, article, aside, li, details)[class*="bg-card"][class*="border"]:not([data-bc-card]) { box-shadow: 0 1px 0 rgba(255, 255, 255, .04) inset; }
+}
+
+/* ═══ BARRA LATERAL (desktop): fundo próprio, títulos de grupo, itens com pílula ═══ */
+@media (min-width: 768px) {
+  aside { background: linear-gradient(180deg, color-mix(in srgb, var(--color-surface) 70%, #000) 0%, color-mix(in srgb, var(--color-surface) 40%, #000) 100%); border-right: 1px solid color-mix(in srgb, var(--color-border) 60%, transparent); }
+  aside nav { padding: 4px 8px 12px; }
+  aside nav > div + div { margin-top: 4px; padding-top: 4px; }
+  aside nav h2 button { text-transform: uppercase; letter-spacing: .1em; font-size: .625rem; font-weight: 700; color: var(--color-text-muted, #9aa1ab); padding: 4px 10px; }
+  aside nav ul a { font-size: .875rem; font-weight: 500; border-radius: 10px; gap: 10px; padding: 5px 10px; letter-spacing: -.005em; }
+  aside nav ul a svg { flex: none; }
+  aside nav ul a:hover { background: color-mix(in srgb, var(--color-accent) 9%, transparent); transform: translateX(2px); }
+  aside nav ul a[aria-current="page"] { background: color-mix(in srgb, var(--color-accent) 15%, transparent); color: var(--color-accent); box-shadow: inset 3px 0 0 var(--color-accent), 0 6px 18px rgba(255, 181, 44, .1); }
+  aside nav ul li:last-child > a[href="/app/crm"], aside nav ul li:last-child > a[href="/app/ai"], aside nav ul li:last-child > a[href="/app/analise"] { font-size: .8125rem; font-weight: 400; color: var(--color-text-muted, #9aa1ab); }
+}
+
+/* Chips da primeira linha (Não lidos / Grupos / Filtros) dividem a largura por igual, alinhados com as abas. */
+[data-bc-filtros] > .flex-wrap > button { flex: 1 1 0; justify-content: center; }
+
+[data-bc-gaveta] { background: linear-gradient(180deg, var(--color-surface) 0%, color-mix(in srgb, var(--color-surface) 88%, #000) 100%); border-right: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent); box-shadow: 18px 0 48px rgba(0, 0, 0, .5); border-radius: 0 22px 22px 0; }
+[data-bc-gaveta] nav { padding: 6px 12px 12px; }
+[data-bc-gaveta] nav > div + div { margin-top: 14px; padding-top: 10px; border-top: 1px solid color-mix(in srgb, var(--color-border) 55%, transparent); }
+[data-bc-gaveta] nav h2 button { text-transform: uppercase; letter-spacing: .09em; font-size: .6875rem; font-weight: 700; color: var(--color-text-muted, #9aa1ab); padding: 6px 10px; }
+[data-bc-gaveta] nav ul a { font-size: .9375rem; border-radius: 14px; gap: 14px; padding: 10px 12px; }
+[data-bc-gaveta] nav ul a[aria-current="page"] { background: color-mix(in srgb, var(--color-accent) 16%, transparent); color: var(--color-accent); box-shadow: inset 3px 0 0 var(--color-accent), 0 6px 18px rgba(255, 181, 44, .12); }
+[data-bc-gaveta] nav ul li:last-child > a[href^="/app/crm"], [data-bc-gaveta] nav ul li:last-child > a[href="/app/ai"], [data-bc-gaveta] nav ul li:last-child > a[href="/app/analise"] { font-size: .8125rem; color: var(--color-text-muted, #9aa1ab); min-height: 40px; }
+[data-bc-gaveta] nav ~ div.border-t { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 12px; border-top: 1px solid color-mix(in srgb, var(--color-border) 55%, transparent); }
+[data-bc-gaveta] nav ~ div.border-t a { justify-content: center; border: 1px solid color-mix(in srgb, var(--color-border) 80%, transparent); border-radius: 14px; margin: 0; padding: 10px; }
+
+/*
+ * Automações (galeria): entrada em cascata, hover com mola e brilho que segue o cursor — o padrão
+ * dos cartões do Motion (stagger + spring + spotlight), feito em CSS: sem biblioteca, sem JS no caminho
+ * crítico. O brilho só precisa de `--mx`/`--my`, que um `onPointerMove` escreve.
+ */
+@keyframes bc-auto-in { from { opacity: 0; transform: translateY(14px) scale(.97); } to { opacity: 1; transform: none; } }
+[data-bc-auto-card] {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  animation: bc-auto-in .45s cubic-bezier(.2, .8, .2, 1) both;
+  animation-delay: calc(var(--i, 0) * 70ms);
+  transition: transform .4s cubic-bezier(.34, 1.56, .64, 1), border-color .2s ease, box-shadow .25s ease;
+}
+[data-bc-auto-card]::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  opacity: 0;
+  pointer-events: none;
+  background: radial-gradient(220px circle at var(--mx, 50%) var(--my, 30%), color-mix(in srgb, var(--color-accent) 24%, transparent), transparent 70%);
+  transition: opacity .25s ease;
+}
+[data-bc-auto-card]:active { transform: scale(.98); }
+@media (hover: hover) {
+  [data-bc-auto-card]:hover {
+    transform: translateY(-5px);
+    border-color: var(--color-accent);
+    box-shadow: 0 16px 36px rgba(0, 0, 0, .38);
+  }
+  [data-bc-auto-card]:hover::before { opacity: 1; }
+  [data-bc-auto-card]:hover [data-bc-auto-seta] { opacity: 1; transform: none; }
+}
+[data-bc-auto-seta] { opacity: 0; transform: translateX(-6px); transition: opacity .2s ease, transform .3s cubic-bezier(.34, 1.56, .64, 1); }
+/* O fluxo "se desenha": cada nó entra depois do anterior. */
+[data-bc-auto-no] { animation: bc-auto-in .4s cubic-bezier(.2, .8, .2, 1) both; animation-delay: calc(var(--i, 0) * 70ms + 260ms + var(--j, 0) * 110ms); }
+[data-bc-auto-tela] { animation: bc-sobe .3s cubic-bezier(.2, .7, .2, 1) both; }
+@media (prefers-reduced-motion: reduce) {
+  [data-bc-auto-card], [data-bc-auto-no], [data-bc-auto-tela] { animation: none; transition: none; }
+  [data-bc-auto-card]:hover { transform: none; }
+  [data-bc-auto-seta] { transition: none; }
+}
+
+
+/* ─── Barra de baixo do celular: cápsula flutuante de vidro ───────────────
+   Referência: WhatsApp e Instagram no iOS. A <nav> vira só um espaçador
+   transparente (a medição do rodapé continua valendo); quem aparece é a <ul>. */
+nav[data-barra-inferior][class*="fixed"] { background: transparent; border: 0; backdrop-filter: none; box-shadow: none; }
+nav[data-barra-inferior][class*="fixed"] [data-bc-pilula] {
+  background: color-mix(in srgb, var(--color-background) 58%, transparent);
+  -webkit-backdrop-filter: blur(24px) saturate(1.7);
+  backdrop-filter: blur(24px) saturate(1.7);
+  border: 1px solid rgba(255, 255, 255, .09);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, .5), 0 2px 6px rgba(0, 0, 0, .3), inset 0 1px 0 rgba(255, 255, 255, .1);
+}
+nav[data-barra-inferior][class*="fixed"] a,
+nav[data-barra-inferior][class*="fixed"] button { transition: background-color .2s ease, color .2s ease, transform .15s ease; }
+nav[data-barra-inferior][class*="fixed"] a:active,
+nav[data-barra-inferior][class*="fixed"] button:active { transform: scale(.94); }
+nav[data-barra-inferior][class*="fixed"] a[aria-current="page"] {
+  background: color-mix(in srgb, var(--color-accent) 20%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-accent) 28%, transparent), 0 4px 14px rgba(255, 181, 44, .16);
+}
+nav[data-barra-inferior][class*="fixed"] a[aria-current="page"] span { font-weight: 600; }
+
+/* ── Buscador do topo (morcego) ──────────────────────────────────────── */
+.bc-busca { transition: border-color .2s ease, box-shadow .25s var(--bc-ease), background-color .2s ease, color .2s ease; }
+.bc-busca:hover, .bc-busca:focus-visible { border-color: color-mix(in srgb, var(--color-accent) 70%, transparent); background: color-mix(in srgb, var(--color-accent) 7%, var(--color-surface, #14161a)); color: var(--color-foreground, #fff); box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 16%, transparent), 0 8px 26px rgba(255, 181, 44, .16); }
+.bc-busca-brilho { position: absolute; inset: 0; background: linear-gradient(100deg, transparent 30%, color-mix(in srgb, var(--color-accent) 22%, transparent) 50%, transparent 70%); transform: translateX(-120%); pointer-events: none; }
+.bc-busca:hover .bc-busca-brilho, .bc-busca:focus-visible .bc-busca-brilho { animation: bc-busca-varre 1.1s var(--bc-ease) both; }
+.bc-busca-morcego { color: var(--color-accent); transition: transform .3s var(--bc-ease); filter: drop-shadow(0 0 6px rgba(255, 181, 44, .35)); }
+.bc-busca:hover .bc-busca-morcego, .bc-busca:focus-visible .bc-busca-morcego { transform: translateY(-1px) scale(1.12); }
+.bc-busca-asa-e, .bc-busca-asa-d { transform-box: fill-box; transform-origin: 100% 40%; }
+.bc-busca-asa-d { transform-origin: 0% 40%; }
+.bc-busca:hover .bc-busca-asa-e, .bc-busca:focus-visible .bc-busca-asa-e { animation: bc-busca-bate-e .32s ease-in-out infinite alternate; }
+.bc-busca:hover .bc-busca-asa-d, .bc-busca:focus-visible .bc-busca-asa-d { animation: bc-busca-bate-d .32s ease-in-out infinite alternate; }
+.bc-busca-olho { transform-box: fill-box; transform-origin: center; animation: bc-busca-pisca 5s ease-in-out infinite; }
+.bc-busca-dica { animation: bc-busca-troca .45s var(--bc-ease) both; }
+@keyframes bc-busca-varre { to { transform: translateX(120%); } }
+@keyframes bc-busca-bate-e { from { transform: rotate(0deg) scaleY(1); } to { transform: rotate(-16deg) scaleY(.78); } }
+@keyframes bc-busca-bate-d { from { transform: rotate(0deg) scaleY(1); } to { transform: rotate(16deg) scaleY(.78); } }
+@keyframes bc-busca-pisca { 0%, 92%, 100% { transform: scaleY(1); } 95% { transform: scaleY(.1); } }
+@keyframes bc-busca-troca { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .bc-busca-brilho, .bc-busca-asa-e, .bc-busca-asa-d, .bc-busca-olho, .bc-busca-dica { animation: none !important; }
+}
+
+/* ── Topo da lista da Inbox: um bloco só, em camadas ─────────────────────
+   1 Iniciar conversa (ação) · 2 busca · 3 chips · 4 abas em controle segmentado.
+   Todas as regras abaixo vêm por último de propósito: valem no computador e no celular. */
+[data-bc-iniciar] { display: block; padding: 10px 12px 0; background: linear-gradient(180deg, color-mix(in srgb, var(--color-accent) 5%, var(--color-background)) 0%, var(--color-background) 100%); }
+[data-bc-iniciar] [data-bc-iniciar-botao] { height: 40px; min-height: 40px; border-radius: 12px; font-size: .875rem; font-weight: 700; letter-spacing: -.005em; color: var(--color-accent); background: color-mix(in srgb, var(--color-accent) 12%, var(--color-surface)); border: 1px solid color-mix(in srgb, var(--color-accent) 55%, transparent); box-shadow: 0 1px 0 rgba(255, 255, 255, .06) inset, 0 6px 16px rgba(255, 181, 44, .12); transition: transform .18s var(--bc-ease), box-shadow .2s ease, background-color .2s ease; }
+[data-bc-iniciar] [data-bc-iniciar-botao]:hover { background: color-mix(in srgb, var(--color-accent) 20%, var(--color-surface)); box-shadow: 0 1px 0 rgba(255, 255, 255, .08) inset, 0 10px 22px rgba(255, 181, 44, .2); transform: translateY(-1px); }
+[data-bc-iniciar] [data-bc-iniciar-botao]:active { transform: translateY(0); }
+
+[data-bc-cabeca] { background: var(--color-background); box-shadow: 0 8px 18px -12px rgba(0, 0, 0, .7); position: relative; z-index: 1; }
+[data-bc-cabeca] [data-bc-busca] input { height: 40px; border-radius: 12px; background: var(--color-surface); border: 1px solid color-mix(in srgb, var(--color-border) 75%, transparent); box-shadow: 0 1px 0 rgba(255, 255, 255, .04) inset; }
+[data-bc-cabeca] [data-bc-busca] input:focus-visible { border-color: var(--color-accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 18%, transparent); }
+[data-bc-cabeca] [data-bc-pill-extra], [data-bc-cabeca] [aria-controls="bc-filtros-extras"] { height: 32px; min-height: 32px; border-radius: 10px; font-size: .75rem; }
+[data-bc-cabeca] [aria-pressed="false"], [data-bc-cabeca] [aria-controls="bc-filtros-extras"][aria-expanded="false"] { background: color-mix(in srgb, var(--color-surface) 70%, transparent); border-color: color-mix(in srgb, var(--color-border) 60%, transparent); }
+[data-bc-cabeca] [aria-pressed="false"]:hover, [data-bc-cabeca] [aria-controls="bc-filtros-extras"]:hover { color: var(--color-foreground, #fff); border-color: color-mix(in srgb, var(--color-accent) 50%, transparent); }
+
+/* Abas Fila · Minhas · Todas: trilho único, a ativa sobe em âmbar. */
+[data-bc-abas] { padding: 0 12px 10px !important; }
+[data-bc-abas] [role="tablist"] { display: flex !important; flex-wrap: nowrap !important; gap: 2px !important; width: 100%; padding: 3px !important; border-radius: 12px !important; background: var(--color-surface) !important; border: 1px solid color-mix(in srgb, var(--color-border) 60%, transparent); box-shadow: 0 1px 0 rgba(0, 0, 0, .35) inset; }
+[data-bc-abas] [role="tab"] { flex: 1 1 0; justify-content: center; min-width: 0; height: 30px; padding: 0 8px !important; border-radius: 9px !important; border-color: transparent !important; background: transparent !important; font-size: .8125rem; font-weight: 600; color: var(--color-text-muted, #9aa1ab); transition: background-color .2s ease, color .2s ease, box-shadow .25s var(--bc-ease); }
+[data-bc-abas] [role="tab"]:hover { color: var(--color-foreground, #fff); }
+[data-bc-abas] [role="tab"][data-state="active"] { background: var(--color-accent) !important; color: var(--color-accent-foreground, #1a1205); box-shadow: 0 4px 14px rgba(255, 181, 44, .35); }
+[data-bc-abas] [role="tab"] .tabular-nums { min-width: 18px; padding: 0 5px; border-radius: 9999px; background: color-mix(in srgb, currentColor 14%, transparent); color: inherit; font-weight: 700; line-height: 18px; text-align: center; }
+
+/* ── Linha de conversa: UM cartão só ─────────────────────────────────────
+   Antes o botão interno pintava o próprio fundo (cantos retos) dentro do cartão
+   arredondado, e a seleção somava borda + anel + fundo: retângulo dentro de
+   retângulo. Agora quem tem fundo, borda e hover é o cartão; o botão é
+   transparente e herda o canto. */
+[data-bc-row] { position: relative; background: color-mix(in srgb, var(--color-surface) 82%, transparent) !important; border: 1px solid transparent !important; border-radius: 14px !important; box-shadow: none !important; padding: 0 !important; overflow: hidden; }
+[data-bc-row] button[data-conversation-id] { background: transparent !important; border-radius: inherit !important; box-shadow: none !important; --tw-ring-shadow: 0 0 #0000 !important; padding: 10px 12px !important; }
+@media (hover: hover) { [data-bc-row]:not([data-bc-selected]):hover { background: color-mix(in srgb, var(--color-surface-elevated, var(--color-surface)) 90%, transparent) !important; border-color: color-mix(in srgb, var(--color-border) 70%, transparent) !important; } }
+[data-bc-row][data-bc-selected], [data-bc-row]:has(button[data-conversation-id][aria-current="true"]) { background: color-mix(in srgb, var(--color-accent) 11%, var(--color-surface)) !important; border-color: color-mix(in srgb, var(--color-accent) 60%, transparent) !important; box-shadow: 0 6px 18px rgba(0, 0, 0, .25) !important; }
+
+/* Caixinha de seleção: sobre o canto do avatar, sem empurrar o conteúdo. */
+[data-bc-row] [data-bc-checkbox] { position: absolute !important; left: 8px; top: 8px; z-index: 3; width: 18px !important; height: 18px !important; min-width: 18px !important; margin: 0 !important; border-radius: 6px !important; opacity: 0; pointer-events: none; background: var(--color-background); transition: opacity .15s ease; }
+[data-bc-row]:hover [data-bc-checkbox], [data-bc-row]:has([data-bc-checkbox]:focus-visible) [data-bc-checkbox], [data-bc-row]:has([data-bc-checkbox][aria-checked="true"]) [data-bc-checkbox] { opacity: 1; pointer-events: auto; }
+
+/* Chips do topo da lista (Não lidos · Grupos · Filtros): ícone e texto na mesma linha, centralizados. */
+[data-bc-cabeca] [data-bc-pill-extra], [data-bc-cabeca] [aria-controls="bc-filtros-extras"] { display: inline-flex !important; flex-direction: row !important; align-items: center !important; justify-content: center !important; gap: 6px; line-height: 1; white-space: nowrap; }
+[data-bc-cabeca] [data-bc-pill-extra] svg, [data-bc-cabeca] [aria-controls="bc-filtros-extras"] svg { flex: none; display: block; }

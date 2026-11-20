@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": { "title": "Consulta de histórico disponível", "subtitle": "Prévia agregada por conexão, sem importação ou envio", "output": "historico-disponivel.html", "quality_profile": "standard" },
+  "lanes": [{ "id": "ui", "label": "Conexões" }, { "id": "server", "label": "Servidor" }, { "id": "sources", "label": "Fontes autorizadas" }],
+  "mainPath": ["cards", "route", "scope", "reader", "result"],
+  "nodes": [
+    { "id": "cards", "lane": "ui", "col": 1, "type": "frontend", "label": "CanalParceiroClient / RedesSociaisClient → HistoricoDisponivel" },
+    { "id": "route", "lane": "server", "col": 2, "type": "route", "label": "GET channel-sessions/[id]/historico/disponivel: admin, tenant ativo, período e teto total de 60s" },
+    { "id": "scope", "lane": "server", "col": 3, "type": "service", "label": "Sessão ativa → credencial sem fallback env → conta/perfil/plataforma conferidos" },
+    { "id": "reader", "lane": "sources", "col": 4, "type": "external", "label": "GET do provedor: cursores, 20 chamadas e prazo de 45 segundos" },
+    { "id": "messages", "lane": "sources", "col": 4, "type": "database", "label": "messages: somente SELECT de IDs, filtro de organização e conferência de canal" },
+    { "id": "result", "lane": "ui", "col": 5, "type": "frontend", "label": "Contagens, lacunas e parcial; falha visível permite nova consulta" },
+    { "id": "replay", "lane": "server", "col": 2, "type": "service", "label": "Webhook duplicado de histórico: retorna duplicate antes de enriquecer contato ou disparar IA" }
+  ],
+  "edges": [
+    { "id": "e1", "from": "cards", "to": "route", "label": "clique explícito; sem varredura ao abrir" },
+    { "id": "e2", "from": "route", "to": "scope", "label": "org autenticada e sessão do path" },
+    { "id": "e3", "from": "scope", "to": "reader", "label": "filtros fixos em toda página" },
+    { "id": "e4", "from": "reader", "to": "messages", "label": "confere duplicatas sem salvar conteúdo" },
+    { "id": "e5", "from": "messages", "to": "result", "label": "agregados; nunca chaves ou transcrições" },
+    { "id": "e6", "from": "result", "to": "cards", "label": "ajuste do período ou nova tentativa" },
+    { "id": "e7", "from": "messages", "to": "replay", "label": "marcador historico_importado impede retomada de efeitos" }
+  ]
+}
